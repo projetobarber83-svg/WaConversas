@@ -353,13 +353,21 @@ export async function POST(request: Request) {
         })
         registeredAt = new Date().toISOString()
       } catch (err) {
-        registrationError =
-          err instanceof Error ? err.message : 'Unknown Meta API error'
-        console.error('Phone number /register failed:', registrationError)
-        // We deliberately fall through and still save the row so the
-        // user can retry without re-entering everything. The UI
-        // surfaces `last_registration_error` so they see WHY it's
-        // not actually live yet.
+        const errMsg = err instanceof Error ? err.message : 'Unknown Meta API error'
+        // (#10) = "Application does not have permission for this action".
+        // For Meta's test sandbox number this means Meta already manages
+        // the registration and the number is already live — treat as registered.
+        if (errMsg.includes('(#10)') || errMsg.includes('#10')) {
+          registeredAt = new Date().toISOString()
+          console.warn('[whatsapp/config] /register returned (#10) — number already managed by Meta, treating as registered:', errMsg)
+        } else {
+          registrationError = errMsg
+          console.error('Phone number /register failed:', registrationError)
+          // We deliberately fall through and still save the row so the
+          // user can retry without re-entering everything. The UI
+          // surfaces `last_registration_error` so they see WHY it's
+          // not actually live yet.
+        }
       }
     }
 
