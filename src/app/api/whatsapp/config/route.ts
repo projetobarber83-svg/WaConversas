@@ -185,13 +185,48 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { phone_number_id, waba_id, access_token, verify_token, pin } = body
+    const { phone_number_id, waba_id, access_token, verify_token, pin, use_stored_token } = body
 
-    if (!access_token || !phone_number_id) {
+    if (!phone_number_id) {
       return NextResponse.json(
-        { error: 'access_token and phone_number_id are required' },
+        { error: 'phone_number_id is required' },
         { status: 400 }
       )
+    }
+
+    if (!access_token && !use_stored_token) {
+      return NextResponse.json(
+        { error: 'access_token is required' },
+        { status: 400 }
+      )
+    }
+
+    // When the client signals to reuse the stored token, decrypt it now.
+    let resolvedAccessToken: string = access_token
+    let storedVerifyToken: string | null = null
+    if (use_stored_token && !access_token) {
+      const { data: storedRow, error: storedErr } = await supabaseAdmin()
+        .from('whatsapp_config')
+        .select('access_token, verify_token')
+        .eq('account_id', accountId)
+        .maybeSingle()
+
+      if (storedErr || !storedRow?.access_token) {
+        return NextResponse.json(
+          { error: 'No stored credentials found. Please re-enter your Access Token.' },
+          { status: 400 }
+        )
+      }
+
+      try {
+        resolvedAccessToken = decrypt(storedRow.access_token)
+      } catch {
+        return NextResponse.json(
+          { error: 'Stored token could not be decrypted. Please re-enter your Access Token.' },
+          { status: 400 }
+        )
+      }
+      storedVerifyToken = storedRow.verify_token ?? null
     }
 
     if (pin !== undefined && pin !== null && pin !== '') {
@@ -240,7 +275,7 @@ export async function POST(request: Request) {
     try {
       phoneInfo = await verifyPhoneNumber({
         phoneNumberId: phone_number_id,
-        accessToken: access_token,
+        accessToken: resolvedAccessToken,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown Meta API error'
@@ -251,12 +286,18 @@ export async function POST(request: Request) {
       )
     }
 
-    // Encrypt sensitive tokens before storing
+    // Encrypt sensitive tokens before storing.
+    // For verify_token: use the new value if provided, otherwise keep
+    // the already-encrypted storedVerifyToken (avoid overwriting with null).
     let encryptedAccessToken: string
     let encryptedVerifyToken: string | null
     try {
-      encryptedAccessToken = encrypt(access_token)
-      encryptedVerifyToken = verify_token ? encrypt(verify_token) : null
+      encryptedAccessToken = encrypt(resolvedAccessToken)
+      if (verify_token) {
+        encryptedVerifyToken = encrypt(verify_token)
+      } else {
+        encryptedVerifyToken = storedVerifyToken
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown encryption error'
       console.error('Encryption failed:', message)
@@ -307,7 +348,7 @@ export async function POST(request: Request) {
       try {
         await registerPhoneNumber({
           phoneNumberId: phone_number_id,
-          accessToken: access_token,
+          accessToken: resolvedAccessToken,
           pin,
         })
         registeredAt = new Date().toISOString()
@@ -331,7 +372,7 @@ export async function POST(request: Request) {
       try {
         await subscribeWabaToApp({
           wabaId: waba_id,
-          accessToken: access_token,
+          accessToken: resolvedAccessToken,
         })
         subscribedAppsAt = new Date().toISOString()
       } catch (err) {
