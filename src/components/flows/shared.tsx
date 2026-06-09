@@ -17,6 +17,7 @@
  */
 
 import {
+  Bot,
   Flag,
   GitFork,
   Inbox,
@@ -47,6 +48,7 @@ export type NodeType =
   | "collect_input"
   | "condition"
   | "set_tag"
+  | "ai_agent"
   | "handoff"
   | "end";
 
@@ -104,6 +106,11 @@ export const NODE_META: Record<
     label: "Tag contact",
     icon: Tag,
     color: "text-pink-400",
+  },
+  ai_agent: {
+    label: "AI Agent",
+    icon: Bot,
+    color: "text-violet-400",
   },
   handoff: {
     label: "Handoff to agent",
@@ -246,6 +253,11 @@ export function summarizeNode(node: BuilderNode): string | null {
       // short prefix of the UUID so users can disambiguate between
       // multiple set_tag nodes at a glance.
       return tagId ? `${mode} tag ${tagId.slice(0, 8)}…` : `${mode} tag (none picked)`;
+    }
+    case "ai_agent": {
+      const prompt = typeof cfg.system_prompt === "string" ? cfg.system_prompt : "";
+      const model = typeof cfg.model === "string" ? cfg.model : "llama-3.1-8b-instant";
+      return prompt.length > 0 ? truncate(prompt, 60) : `Model: ${model}`;
     }
     case "handoff": {
       const note = typeof cfg.note === "string" ? cfg.note : "";

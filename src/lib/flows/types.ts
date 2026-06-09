@@ -173,6 +173,29 @@ export interface SetTagNodeConfig {
   next_node_key: string;
 }
 
+/**
+ * Calls the Groq LLM, sends the generated response to the customer,
+ * then auto-advances. Acts like `send_message` but the text is
+ * produced by the model rather than authored by the flow builder.
+ *
+ * `user_message_template` supports `{{vars.X}}` interpolation so a
+ * preceding `collect_input` node's captured value can be forwarded to
+ * the model (e.g. `{{vars.customer_question}}`).
+ */
+export interface AiAgentNodeConfig {
+  /** System prompt — persona + instructions for the model. */
+  system_prompt: string;
+  /**
+   * The user-side turn sent to the model. Supports {{vars.X}}.
+   * Defaults to "Continue." when omitted.
+   */
+  user_message_template?: string;
+  /** Groq model id. Defaults to llama-3.1-8b-instant. */
+  model?: string;
+  /** Auto-advance target after the AI response is sent. */
+  next_node_key: string;
+}
+
 // Terminal nodes carry no config — they just stop the run.
 export type EndNodeConfig = Record<string, never>;
 
@@ -193,6 +216,7 @@ export type FlowNodeConfig =
   | { node_type: "collect_input"; config: CollectInputNodeConfig }
   | { node_type: "condition"; config: ConditionNodeConfig }
   | { node_type: "set_tag"; config: SetTagNodeConfig }
+  | { node_type: "ai_agent"; config: AiAgentNodeConfig }
   | { node_type: "handoff"; config: HandoffNodeConfig }
   | { node_type: "end"; config: EndNodeConfig };
 

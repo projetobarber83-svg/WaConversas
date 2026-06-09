@@ -182,6 +182,13 @@ export function defaultConfigFor(type: NodeType): Record<string, unknown> {
       };
     case "set_tag":
       return { mode: "add", tag_id: "", next_node_key: "" };
+    case "ai_agent":
+      return {
+        system_prompt: "",
+        user_message_template: "",
+        model: "llama-3.1-8b-instant",
+        next_node_key: "",
+      };
     case "handoff":
       return { note: "" };
     case "end":

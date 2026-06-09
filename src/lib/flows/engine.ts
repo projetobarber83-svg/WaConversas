@@ -40,7 +40,9 @@ import {
   engineSendText,
 } from "./meta-send";
 import { decideFallback, resolveFallbackPolicy } from "./fallback";
+import { callGroq } from "./groq-agent";
 import {
+  type AiAgentNodeConfig,
   type CollectInputNodeConfig,
   type ConditionNodeConfig,
   type DispatchInboundInput,
@@ -728,6 +730,39 @@ async function advanceFromNodeKey(
           reason: "set_tag_failed",
           detail: err instanceof Error ? err.message : String(err),
         });
+      }
+      currentKey = cfg.next_node_key;
+      continue;
+    }
+    if (node.node_type === "ai_agent") {
+      const cfg = node.config as unknown as AiAgentNodeConfig;
+      const userMessage = cfg.user_message_template
+        ? interpolateVars(cfg.user_message_template, run.vars)
+        : "Continue.";
+      try {
+        const aiText = await callGroq({
+          systemPrompt: cfg.system_prompt,
+          userMessage,
+          model: cfg.model,
+        });
+        const { whatsapp_message_id } = await engineSendText({
+          accountId: run.account_id,
+          userId: run.user_id,
+          conversationId: run.conversation_id!,
+          contactId: run.contact_id!,
+          text: aiText,
+        });
+        await logEvent(db, run.id, "message_sent", node.node_key, {
+          node_type: "ai_agent",
+          whatsapp_message_id,
+        });
+      } catch (err) {
+        await logEvent(db, run.id, "error", node.node_key, {
+          reason: "ai_agent_failed",
+          detail: err instanceof Error ? err.message : String(err),
+        });
+        await endRun(db, run.id, "failed", "ai_agent_failed");
+        return { outcome: "completed" };
       }
       currentKey = cfg.next_node_key;
       continue;

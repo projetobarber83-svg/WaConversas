@@ -18,13 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/inbox": "Inbox",
-  "/contacts": "Contacts",
+  "/dashboard": "Painel",
+  "/inbox": "Caixa de Entrada",
+  "/contacts": "Contatos",
   "/pipelines": "Pipelines",
-  "/broadcasts": "Broadcasts",
-  "/automations": "Automations",
-  "/settings": "Settings",
+  "/broadcasts": "Disparos",
+  "/automations": "Automações",
+  "/settings": "Configurações",
 };
 
 function getPageTitle(pathname: string): string {
@@ -111,7 +111,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             }
           >
             <User className="size-4" />
-            Profile
+            Perfil
           </DropdownMenuItem>
           <DropdownMenuItem
             render={
@@ -122,7 +122,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             }
           >
             <SettingsIcon className="size-4" />
-            Settings
+            Configurações
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-slate-800" />
           <DropdownMenuItem
@@ -130,7 +130,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             className="text-slate-200 focus:bg-slate-800 focus:text-white"
           >
             <LogOut className="size-4" />
-            Sign out
+            Sair
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

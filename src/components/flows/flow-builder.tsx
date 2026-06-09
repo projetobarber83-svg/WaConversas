@@ -526,6 +526,7 @@ function AddNodeButton({ onAdd }: { onAdd: (type: NodeType) => void }) {
     "collect_input",
     "condition",
     "set_tag",
+    "ai_agent",
     "handoff",
     "end",
   ];

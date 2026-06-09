@@ -188,6 +188,64 @@ export function NodeConfigForm({
         />
       );
 
+    case "ai_agent": {
+      const aiCfg = cfg as {
+        system_prompt?: string;
+        user_message_template?: string;
+        model?: string;
+        next_node_key?: string;
+      };
+      const GROQ_MODELS = [
+        { value: "llama-3.1-8b-instant", label: "Llama 3.1 8B — mais rápido / barato" },
+        { value: "llama-3.1-70b-versatile", label: "Llama 3.1 70B — mais inteligente" },
+        { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B — melhor custo-benefício" },
+        { value: "mixtral-8x7b-32768", label: "Mixtral 8x7B — contexto longo" },
+      ];
+      return (
+        <>
+          <TextRow
+            label="System prompt (instruções para a IA)"
+            value={aiCfg.system_prompt ?? ""}
+            onChange={(v) => onUpdateConfig({ system_prompt: v })}
+            rows={4}
+            placeholder="Ex: Você é um atendente simpático da loja X. Responda de forma curta e objetiva em português."
+          />
+          <TextRow
+            label="Mensagem do cliente (opcional — aceita {{vars.X}})"
+            value={aiCfg.user_message_template ?? ""}
+            onChange={(v) => onUpdateConfig({ user_message_template: v })}
+            rows={2}
+            placeholder="Ex: {{vars.pergunta}} — deixe em branco para usar 'Continue.'"
+          />
+          <div>
+            <label className="mb-1 block text-xs text-slate-400">Modelo Groq</label>
+            <Select
+              value={aiCfg.model ?? "llama-3.1-8b-instant"}
+              onValueChange={(v) => onUpdateConfig({ model: v })}
+            >
+              <SelectTrigger className="bg-slate-800 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-slate-700 bg-slate-900">
+                {GROQ_MODELS.map((m) => (
+                  <SelectItem key={m.value} value={m.value} className="text-xs">
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <NextNodeRow
+            value={aiCfg.next_node_key ?? ""}
+            allNodes={allNodes}
+            currentKey={node.node_key}
+            onChange={(v) => onUpdateConfig({ next_node_key: v })}
+            label="Após responder, avançar para"
+          />
+        </>
+      );
+    }
+
     case "handoff":
       return (
         <TextRow
